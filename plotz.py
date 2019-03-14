@@ -22,11 +22,17 @@ def itergroups(df, groupcol):
     for item in df[groupcol].unique():
         yield df[df[groupcol] == item], item
 
+def enumergroups(df, groupcol):
+    """Return slices of a dataframe based on the
+    supplied grouping column (str) with indices
+    """
+    for i, item in enumerate (df[groupcol].unique()):
+        yield df[df[groupcol] == item], item, i
 
 def histo_series(series, title=None):
     """Histogram a single Pandas Series"""
     if title is None:
-        title = series
+        title = ''
     
     histo = go.Histogram(
         x=series,
@@ -61,11 +67,66 @@ def histo_all(df):
             print("Error plotting {}: {}".format(column, ex))
             next
             
-def scatter_xy(df, x, y, mode='markers', title=''):
+def percent_missing(df, sort=None):
+    """Compute percent-missing data for each column in a
+    dataframe, and graph the results. 
+    sort: 
+        'alpha' to sort column names alphabetically
+        'value' to show columns with highest missing first
+        Default shows columns in existing order
+    """
+    pm = df.isna().mean().round(4) * 100
+
+    if sort == 'alpha':
+        pm.sort_index(inplace=True)
+    elif sort == 'value':
+        pm.sort_values(inplace=True, ascending=False)
+
+
+    data = [go.Bar(
+            name='Actual',
+            x=pm.values,
+            y=pm.index,
+            text=pm.values.round(1),
+            textposition='auto',
+            orientation='h'
+            )]
+
+    layout = go.Layout(dict(
+        width=600,
+        height=len(pm)*30,
+        title='% Missing',
+        xaxis=dict(
+            title='% Missing',
+            range=[0, 100],
+            showline=True,
+            mirror=True,
+            ),
+        yaxis=dict(
+            title='',
+            automargin=True,
+            mirror='ticks',
+            zeroline=True,
+            showline=True,
+            autorange='reversed',
+            ),
+        hovermode='closest'
+    ))
+
+    fig = go.Figure(data=data,layout=layout)
+
+    iplot(fig)
+
+
+def scatter_xy(df, x, y, mode='markers', title='', textcol=None, text=''):
     """Provide a dataframe(df), and strings representing
     the column names for the x and y variables.
     Uses Plotly's WebGL interface for speedier scatters.
     """
+
+    if textcol:
+        text = df[textcol]
+
     data = []
 
     data.append(
@@ -73,7 +134,7 @@ def scatter_xy(df, x, y, mode='markers', title=''):
             name='',
             x=df[x],
             y=df[y],
-            # text=None,
+            text=text,
             mode=mode,
             marker=dict(
                 opacity=0.5,
@@ -107,12 +168,12 @@ def line_xy(df, x, y):
     """
     scatter_xy(sort_by_x(df, x), x, y, mode='lines')
 
-def line_by_group(df, x, y, group):
+def line_by_group(df, x, y, group, mode='lines', text=None, title=None):
     """Line chart looping over groups
     in the provided DataFrame
     """
-
-    #Order the values so lines don't look crazy
+    if title is None:
+        title = ''
     data = []
 
     #Iterate over group names and append a scatter
@@ -122,11 +183,12 @@ def line_by_group(df, x, y, group):
                 name=item,
                 x=tdf[x],
                 y=tdf[y],
-                mode='lines',
+                mode=mode,
+                text=text
             ))
 
     layout = go.Layout(dict(
-        title='',
+        title= title,
         xaxis=dict(
             title=x,
             ),
