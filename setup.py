@@ -7,8 +7,10 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="plotz",
     version="0.0.1",
+    license="MIT",
     author="Daniel Arneman",
-    author_email=None,
+    author_email='darneman@modern.energy',
+    keywords='pandas plotly visualization',
     description="Graphing shortcuts with Pandas and Plotly",
     long_description=long_description,
     long_description_content_type="text/markdown",
